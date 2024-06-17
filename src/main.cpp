@@ -6,12 +6,12 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <cmath>
+#include <valarray>
 
 // Funktionen deklarieren
 static void modifyCurrentWorkingDirectory();
 void generateTrack(std::vector<sf::RectangleShape> &track, sf::RenderWindow &window);
-void handleCarMovement(sf::Sprite &carSprite, float &currentRotation, float &carSpeed, float deltaTime);
+void handleCarMovement(sf::Sprite &carSprite, float deltaTime);
 
 int main()
 {
@@ -37,8 +37,6 @@ int main()
     carSprite.setOrigin(16, 16); // Mittig setzen
     carSprite.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f); // Startposition
 
-    float currentRotation = 0.f;
-    float carSpeed = 0.f;
     sf::Clock clock;
 
     while (window.isOpen())
@@ -55,7 +53,7 @@ int main()
         float deltaTime = clock.restart().asSeconds();
 
         // Auto Bewegung steuern
-        handleCarMovement(carSprite, currentRotation, carSpeed, deltaTime);
+        handleCarMovement(carSprite, deltaTime);
 
         window.clear(clearColor);
 
@@ -84,9 +82,9 @@ void modifyCurrentWorkingDirectory()
 void generateTrack(std::vector<sf::RectangleShape> &track, sf::RenderWindow &window)
 {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-    int segmentCount = 100; // Anzahl der Segmente
-    float segmentWidth = 80.f; // Breite der Segmente
-    float segmentHeight = 30.f; // Höhe der Segmente
+    int segmentCount = 50;
+    float segmentWidth = 60.f;
+    float segmentHeight = 20.f;
 
     sf::Vector2f position(window.getSize().x / 2.f, window.getSize().y / 2.f);
 
@@ -111,36 +109,25 @@ void generateTrack(std::vector<sf::RectangleShape> &track, sf::RenderWindow &win
     }
 }
 
-void handleCarMovement(sf::Sprite &carSprite, float &currentRotation, float &carSpeed, float deltaTime)
+void handleCarMovement(sf::Sprite &carSprite, float deltaTime)
 {
-    const float acceleration = 200.f; // Beschleunigung des Autos
-    const float deceleration = 200.f; // Verzögerung des Autos
-    const float maxSpeed = 400.f; // Maximalgeschwindigkeit des Autos
-    const float rotationSpeed = 100.f; // Geschwindigkeit der Drehung des Autos
+    float speed = 200.f; // Geschwindigkeit des Autos
+    sf::Vector2f movement(0.f, 0.f);
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-        carSpeed += acceleration * deltaTime;
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-        carSpeed -= acceleration * deltaTime;
-    else
-        carSpeed *= (1 - deceleration * deltaTime / maxSpeed);
+        movement.y -= speed * deltaTime;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        movement.y += speed * deltaTime;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        movement.x -= speed * deltaTime;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        movement.x += speed * deltaTime;
 
-    carSpeed = std::max(std::min(carSpeed, maxSpeed), -maxSpeed);
-
-    if (carSpeed != 0.f)
+    if (movement.x != 0 || movement.y != 0)
     {
-        float turnDirection = 0.f;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-            turnDirection = -1.f;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            turnDirection = 1.f;
+        carSprite.move(movement);
 
-        currentRotation += turnDirection * rotationSpeed * deltaTime * (carSpeed / maxSpeed);
-        carSprite.setRotation(currentRotation);
+        float angle = std::atan2(movement.y, movement.x) * 180 / 3.14159265;
+        carSprite.setRotation(angle + 90); // +90 Grad, um das Auto korrekt auszurichten
     }
-
-    sf::Vector2f movement(std::cos(currentRotation * 3.14159265 / 180) * carSpeed * deltaTime,
-                          std::sin(currentRotation * 3.14159265 / 180) * carSpeed * deltaTime);
-
-    carSprite.move(movement);
 }
